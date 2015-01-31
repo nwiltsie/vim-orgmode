@@ -244,6 +244,80 @@ class Date(object):
 		insert_at_cursor(timestamp)
 
 	@classmethod
+	def add_planning_date_line(cls, planning_tag):
+		u"""
+		Insert a planning datestamp in a line after the current line.
+
+		TODO: Show fancy calendar to pick the date from.
+		TODO: Update an existing date, if present.
+		"""
+
+		today = date.today()
+		msg = u''.join([
+			u'Inserting ',
+			unicode(today.strftime(u'%Y-%m-%d %a'), u'utf-8'),
+			u' | Modify date'])
+		modifier = get_user_input(msg)
+
+		# abort if the user canceled the input promt
+		if modifier is None:
+			return
+		echom('The mod was' + modifier + str(len(modifier)))
+
+		newdate = cls._modify_time(today, modifier)
+
+		# format
+		if isinstance(newdate, datetime):
+			newdate = newdate.strftime(
+				u'%Y-%m-%d %a %H:%M'.encode(u'utf-8')).decode(u'utf-8')
+		else:
+			newdate = newdate.strftime(
+				u'%Y-%m-%d %a'.encode(u'utf-8')).decode(u'utf-8')
+
+		# Find the heading level for indentation
+		curr_line = vim.current.line
+		match = re.match(r'^(\*+)', curr_line)
+
+		level = 1
+		if match:
+			level += len(match.group())
+
+		timestamp = u' ' * level + u'%s: <%s>' % (planning_tag, newdate)
+
+		# Edit the current buffer to insert the planning line
+		curr_row, _ = vim.current.window.cursor
+		curr_row -= 1  # Change vim 1-based indexing to 0-based indexing
+		buff = vim.current.buffer
+
+		pre_lines = buff[:curr_row+1]  # Lines up to and including the current line
+		if len(buff) > curr_row + 1:
+			if planning_tag in buff[curr_row+1]:
+				post_lines = buff[curr_row+2:]
+				plan_line = re.sub(
+					r'%s:[^>]*>' % planning_tag,
+					timestamp.strip(),
+					buff[curr_row+1])
+			elif 'SCHEDULED' in buff[curr_row+1] or 'DEADLINE' in buff[curr_row+1]:
+				post_lines = buff[curr_row+2:]
+				plan_line = buff[curr_row+1] + " " + timestamp.strip()
+			else:
+				post_lines = buff[curr_row+1:]
+				plan_line = timestamp
+		else:
+			post_lines = []
+			plan_line = timestamp
+
+		buff[:] = pre_lines + [plan_line] + post_lines
+
+	@classmethod
+	def add_deadline_date_line(cls):
+		cls.add_planning_date_line('DEADLINE')
+
+	@classmethod
+	def add_scheduled_date_line(cls):
+		cls.add_planning_date_line('SCHEDULED')
+
+	@classmethod
 	def insert_timestamp_with_calendar(cls, active=True):
 		u"""
 		Insert a timestamp at the cursor position.
@@ -272,10 +346,17 @@ class Date(object):
 		"""
 		add_cmd_mapping_menu(
 			self,
-			name=u'OrgDateInsertTimestampActiveCmdLine',
+			name=u'OrgDateInsertScheduledDateLine',
 			key_mapping=u'<localleader>sa',
-			function=u':py ORGMODE.plugins[u"Date"].insert_timestamp()',
-			menu_desrc=u'Timest&amp'
+			function=u':py ORGMODE.plugins[u"Date"].add_scheduled_date_line()',
+			menu_desrc=u'Timestamp'
+		)
+		add_cmd_mapping_menu(
+			self,
+			name=u'OrgDateInsertDeadlineDateLine',
+			key_mapping=u'<localleader>da',
+			function=u':py ORGMODE.plugins[u"Date"].add_deadline_date_line()',
+			menu_desrc=u'Timestamp'
 		)
 		add_cmd_mapping_menu(
 			self,

@@ -314,11 +314,6 @@ class Todo(object):
 			u':py ORGMODE.plugins[u"Todo"].toggle_todo_state(interactive=False)<CR>')))
 		self.menu + ActionEntry(u'&TODO/DONE/-', self.keybindings[-1])
 
-		self.keybindings.append(Keybinding(u'<localleader>d', Plug(
-			u'OrgTodoToggleInteractive',
-			u':py ORGMODE.plugins[u"Todo"].toggle_todo_state(interactive=True)<CR>')))
-		self.menu + ActionEntry(u'&TODO/DONE/- (interactiv)', self.keybindings[-1])
-
 		# add submenu
 		submenu = self.menu + Submenu(u'Select &keyword')
 
