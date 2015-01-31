@@ -133,14 +133,25 @@ def insert_at_cursor(text, move=True, start_insertmode=False):
 
 def get_user_input(message):
 	u"""Print the message and take input from the user.
-	Return the input or None if there is no input.
+	Return the input, an empty string if the user hit <Enter>, or None if
+	the user hit <Esc>
+
+	Current this uses ' ' as a default entry to differentiate between
+	<Enter> and <Esc>. This is messy but better than the alternative
+	(<Escape> behaving the same as <Enter> with no input).
 	"""
 	vim.command(u'call inputsave()'.encode(u'utf-8'))
-	vim.command((u"let user_input = input('" + message + u": ')")
+	vim.command((u"let user_input = input('" + message + u": ', ' ')")
 			.encode(u'utf-8'))
 	vim.command(u'call inputrestore()'.encode(u'utf-8'))
 	try:
-		return vim.eval(u'user_input'.encode(u'utf-8')).decode(u'utf-8')
+		user_input = vim.eval(u'user_input'.encode(u'utf-8')).decode(u'utf-8')
+		if user_input == ' ':
+		    return ""
+		elif user_input:
+		    return user_input
+		else:
+		    return None
 	except:
 		return None
 
