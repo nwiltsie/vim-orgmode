@@ -37,7 +37,7 @@ class Agenda(object):
 	@classmethod
 	def _switch_to(cls, bufname, vim_commands=None):
 		u"""
-		Swicht to the buffer with bufname.
+		Switch to the buffer with bufname.
 
 		A list of vim.commands (if given) gets executed as well.
 
