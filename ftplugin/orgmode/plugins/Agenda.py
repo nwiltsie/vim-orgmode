@@ -41,7 +41,7 @@ class Agenda(object):
 
 		A list of vim.commands (if given) gets executed as well.
 
-		TODO: this should be extracted and imporved to create an easy to use
+		TODO: this should be extracted and improved to create an easy to use
 		way to create buffers/jump to buffers. Otherwise there are going to be
 		quite a few ways to open buffers in vimorgmode.
 		"""
@@ -170,13 +170,13 @@ class Agenda(object):
 
 			bufname = os.path.basename(vim.buffers[h.document.bufnr].name)
 			bufname = bufname[:-4] if bufname.endswith(u'.org') else bufname
-			formated = u"  %(bufname)s (%(bufnr)d)  %(todo)s  %(title)s" % {
+			formatted = u"  %(bufname)s (%(bufnr)d)  %(todo)s  %(title)s" % {
 				'bufname': bufname,
 				'bufnr': h.document.bufnr,
 				'todo': h.todo,
 				'title': h.title
 			}
-			final_agenda.append(formated)
+			final_agenda.append(formatted)
 			cls.line2doc[len(final_agenda)] = (get_bufname(h.document.bufnr), h.document.bufnr, h.start)
 
 		# show agenda
@@ -209,6 +209,93 @@ class Agenda(object):
 			tmp = u"%s %s" % (h.todo, h.title)
 			final_agenda.append(tmp)
 			cls.line2doc[len(final_agenda)] = (get_bufname(h.document.bufnr), h.document.bufnr, h.start)
+
+		# show agenda
+		vim.current.buffer[:] = [i.encode(u'utf-8') for i in final_agenda]
+		vim.command(u'setlocal nomodifiable  conceallevel=2 concealcursor=nc'.encode(u'utf-8'))
+
+	@classmethod
+	def list_next_actions(cls):
+		u"""
+		List all NEXT actions and their parents in one buffer.
+		"""
+		agenda_documents = cls._get_agendadocuments()
+		if not agenda_documents:
+			return
+		raw_agenda = ORGMODE.agenda_manager.get_next_actions(agenda_documents)
+
+		cls.line2doc = {}
+		# create buffer at bottom
+		cmd = [u'setlocal filetype=orgagenda']
+		cls._switch_to(u'AGENDA', cmd)
+
+		# format text of agenda
+		final_agenda = []
+		seen_nodes = set()
+		for i, h in enumerate(raw_agenda):
+			tree = []
+			bufname = os.path.basename(vim.buffers[h.document.bufnr].name)
+			while h:
+				if h not in seen_nodes:
+					tree.append(h)
+					seen_nodes.add(h)
+					h = h.parent
+				else:
+					tree = []
+					break
+			for h in reversed(tree):
+				formatted = u"  %(bufname)-14s  %(todo)s %(space)s %(title)s" % {
+					'bufname': bufname,
+					'todo': h.todo,
+					'space': '    ' * (h.level - 1),
+					'title': h.title
+				}
+				final_agenda.append(formatted)
+				cls.line2doc[len(final_agenda)] = (get_bufname(h.document.bufnr), h.document.bufnr, h.start)
+
+		# show agenda
+		vim.current.buffer[:] = [i.encode(u'utf-8') for i in final_agenda]
+		vim.command(u'setlocal nomodifiable  conceallevel=2 concealcursor=nc'.encode(u'utf-8'))
+
+	@classmethod
+	def list_stuck_projects(cls):
+		u"""
+		List all stuck projects (TODOs with no NEXT child) in one buffer.
+		"""
+		agenda_documents = cls._get_agendadocuments()
+		if not agenda_documents:
+			return
+		raw_agenda = ORGMODE.agenda_manager.get_stuck_projects(agenda_documents)
+
+		cls.line2doc = {}
+		# create buffer at bottom
+		cmd = [u'setlocal filetype=orgagenda']
+		cls._switch_to(u'AGENDA', cmd)
+
+		# format text of agenda
+		final_agenda = []
+		seen_nodes = set()
+		for i, h in enumerate(raw_agenda):
+			tree = []
+			bufname = os.path.basename(vim.buffers[h.document.bufnr].name)
+			# Eliminate duplicates
+			while h:
+				if h not in seen_nodes:
+					tree.append(h)
+					seen_nodes.add(h)
+					h = h.parent
+				else:
+					tree = []
+					break
+			for h in reversed(tree):
+				formatted = u"  %(bufname)-14s  %(todo)s %(space)s %(title)s" % {
+					'bufname': bufname,
+					'todo': h.todo,
+					'space': '    ' * (h.level - 1),
+					'title': h.title
+				}
+				final_agenda.append(formatted)
+				cls.line2doc[len(final_agenda)] = (get_bufname(h.document.bufnr), h.document.bufnr, h.start)
 
 		# show agenda
 		vim.current.buffer[:] = [i.encode(u'utf-8') for i in final_agenda]
@@ -251,6 +338,20 @@ class Agenda(object):
 			function=u':py ORGMODE.plugins[u"Agenda"].list_all_todos()',
 			key_mapping=u'<localleader>cat',
 			menu_desrc=u'Agenda for all TODOs'
+		)
+		add_cmd_mapping_menu(
+			self,
+			name=u"OrgAgendaNextActions",
+			function=u':py ORGMODE.plugins[u"Agenda"].list_next_actions()',
+			key_mapping=u'<localleader>can',
+			menu_desrc=u'List next actions'
+		)
+		add_cmd_mapping_menu(
+			self,
+			name=u"OrgAgendaStuck",
+			function=u':py ORGMODE.plugins[u"Agenda"].list_stuck_projects()',
+			key_mapping=u'<localleader>cas',
+			menu_desrc=u'List stuck projects'
 		)
 		add_cmd_mapping_menu(
 			self,
