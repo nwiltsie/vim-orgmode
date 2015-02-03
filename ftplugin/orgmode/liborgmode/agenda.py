@@ -16,6 +16,7 @@ from orgmode.liborgmode.agendafilter import filter_items
 from orgmode.liborgmode.agendafilter import is_within_week_and_active_todo
 from orgmode.liborgmode.agendafilter import contains_active_todo
 from orgmode.liborgmode.agendafilter import contains_active_date
+from orgmode.liborgmode.agendafilter import is_stuck, is_leaf, is_not_waiting_on_sibling, contains_next_action
 
 
 class AgendaManager(object):
@@ -23,6 +24,26 @@ class AgendaManager(object):
 
 	def __init__(self):
 		super(AgendaManager, self).__init__()
+
+	def get_stuck_projects(self, documents):
+		filtered = []
+		for i, document in enumerate(documents):
+			# filter and return headings
+			tmp = filter_items(document.all_headings(), [contains_active_todo,
+									is_stuck,
+									is_leaf,
+									is_not_waiting_on_sibling])
+			filtered.extend(tmp)
+		return sorted(filtered)
+
+	def get_next_actions(self, documents):
+		filtered = []
+		for i, document in enumerate(documents):
+			# filter and return headings
+			tmp = filter_items(document.all_headings(), [contains_next_action,
+									is_leaf])
+			filtered.extend(tmp)
+		return sorted(filtered)
 
 	def get_todo(self, documents):
 		u"""
