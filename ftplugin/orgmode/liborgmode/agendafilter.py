@@ -49,6 +49,7 @@ def is_within_week(heading):
 		next_week = datetime.today() + timedelta(days=7)
 		if heading.active_date < next_week:
 			return True
+	return False
 
 
 def is_within_week_and_active_todo(heading):
@@ -66,8 +67,54 @@ def contains_active_todo(heading):
 	FIXME: the todo checking should consider a number of different active todo
 	states
 	"""
-	return heading.todo == u"TODO"
+	return heading.todo in [u"TODO", u"NEXT"]
 
+
+def is_next_task(heading):
+	u"""
+	Return True if heading is a NEXT action.
+	"""
+	return heading.todo == u"NEXT"
+
+
+def is_leaf(heading):
+	u"""
+	Return True if heading is a leaf.
+	"""
+	return not bool(heading.children.data)
+
+
+def is_stuck(heading):
+	u"""
+	Return True if the subtree does not have a NEXT tag.
+	"""
+	if heading.todo == u"NEXT":
+		return False
+	elif len(heading.children.data) == 0:
+		return True
+	else:
+		for child in heading.children.data:
+		        if not is_stuck(child):
+				return True
+
+
+def contains_next_action(heading):
+	return heading.todo == u"NEXT"
+
+
+def is_not_waiting_on_sibling(heading):
+	u"""
+	Return true if all of the previous siblings are stuck
+	"""
+	if heading.todo == u"NEXT":
+		return False
+	h = heading._previous_sibling
+	while h:
+		if not is_stuck(h):
+			return False
+		else:
+			h = h._previous_sibling
+	return True
 
 def contains_active_date(heading):
 	u"""
