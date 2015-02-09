@@ -232,24 +232,37 @@ class Agenda(object):
 		# format text of agenda
 		final_agenda = []
 		seen_nodes = set()
-		for i, h in enumerate(raw_agenda):
+		lastbuffer = u""
+		for i, orig_heading in enumerate(raw_agenda):
+			h = orig_heading
 			tree = []
 			bufname = os.path.basename(vim.buffers[h.document.bufnr].name)
+			# Only print the buffer name once
+			if bufname == lastbuffer:
+				bufname = u""
+			else:
+				lastbuffer = bufname
 			while h:
 				if h not in seen_nodes:
 					tree.append(h)
 					seen_nodes.add(h)
 					h = h.parent
+				# If we've hit a previously-seen node, don't re-print it
 				else:
-					tree = []
 					break
+			# We've built the tree leaf to root, so reverse that
 			for h in reversed(tree):
+				if h == orig_heading:
+					todo = h.todo
+				else:
+					todo = u"    "
 				formatted = u"  %(bufname)-14s  %(todo)s %(space)s %(title)s" % {
 					'bufname': bufname,
-					'todo': h.todo,
+					'todo': todo,
 					'space': '    ' * (h.level - 1),
 					'title': h.title
 				}
+
 				final_agenda.append(formatted)
 				cls.line2doc[len(final_agenda)] = (get_bufname(h.document.bufnr), h.document.bufnr, h.start)
 

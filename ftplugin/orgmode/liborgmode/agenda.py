@@ -43,7 +43,7 @@ class AgendaManager(object):
 			tmp = filter_items(document.all_headings(), [contains_next_action,
 									is_leaf])
 			filtered.extend(tmp)
-		return sorted(filtered)
+		return filtered
 
 	def get_todo(self, documents):
 		u"""
